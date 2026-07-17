@@ -215,8 +215,8 @@ export default function Ingest() {
       </p>
 
       <p className="readout" style={{ marginTop: 40, color: "var(--ink-3)" }}>
-        Parsing runs ~5–6 seconds per page (visual extraction), up to 15,000 pages a month. You can
-        watch each step on the next screen.
+        Parsing takes about a minute to start, plus a few seconds per page (visual extraction) — up
+        to 15,000 pages a month. You can watch each step on the next screen.
       </p>
     </main>
   );

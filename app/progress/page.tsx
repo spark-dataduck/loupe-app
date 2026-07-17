@@ -196,7 +196,7 @@ function ProgressInner() {
       </h1>
       <p className="lede" style={{ marginBottom: 22 }}>
         <span className="readout">elapsed {fmtElapsed(elapsed)}</span>
-        {!done && !failed && " · parsing runs ~5–6 seconds per page (visual extraction), up to 15,000 pages a month"}
+        {!done && !failed && " · parsing takes about a minute to start, plus a few seconds per page (visual extraction), up to 15,000 pages a month"}
       </p>
 
       <StepCard
