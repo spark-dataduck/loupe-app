@@ -109,9 +109,7 @@ export default function DropPage() {
                     <div className="doc-meta readout">
                       <span className="doc-tag"><Hash size={11} aria-hidden />{d.table}</span>
                       <span>{fmtRows(d.rows)}</span>
-                      <span className={d.hasIndex ? "ok" : "muted"}>
-                        {d.hasIndex ? "indexed" : "no index"}
-                      </span>
+                      <span className="ok">indexed</span>
                     </div>
                   </div>
                 </div>
