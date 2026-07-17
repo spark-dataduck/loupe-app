@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Crosshair, Menu, X, FileUp, Activity, Search, Trash2 } from "lucide-react";
+import DuckMark from "./DuckMark";
 
 /**
  * The persistent app frame. It stays put across routes for identity, but changes
@@ -62,7 +63,9 @@ export default function TopBar() {
           <span className="word">
             <b>Loupe</b>
           </span>
-          <span className="tag">document search</span>
+          <span className="dive-badge">
+            in <DuckMark height={12} /> <b>Dive</b>
+          </span>
         </Link>
 
         <div className="nav-right">
