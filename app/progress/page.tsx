@@ -148,7 +148,12 @@ function ProgressInner() {
         if (stop) return;
         setStatus(data);
         const terminal = data.done || data.step2?.state === "failed";
-        if (!terminal) timer = setTimeout(poll, 3000);
+        if (terminal) {
+          tick(); // capture the final elapsed, then freeze the clock
+          clearInterval(clock);
+        } else {
+          timer = setTimeout(poll, 3000);
+        }
       } catch (e) {
         if (stop) return;
         setFatal(e instanceof Error ? e.message : "Lost connection to the pipeline.");
@@ -226,9 +231,9 @@ function ProgressInner() {
             Open in Loupe <ArrowRight size={16} aria-hidden />
           </button>
         )}
-        {(failed || done) && (
+        {failed && (
           <button className="btn btn-ghost" onClick={() => router.push("/")}>
-            <RotateCcw size={15} aria-hidden /> {failed ? "Try again" : "Add another"}
+            <RotateCcw size={15} aria-hidden /> Try again
           </button>
         )}
       </div>
