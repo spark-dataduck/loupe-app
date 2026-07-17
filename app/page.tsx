@@ -60,12 +60,20 @@ export default function Ingest() {
           urls.push(src.value);
         } else {
           setNote(`Uploading ${src.label}…`);
-          const blob = await upload(src.value.name, src.value, {
-            access: "public",
-            handleUploadUrl: "/api/blob/upload",
-            contentType: "application/pdf",
-          });
-          urls.push(blob.url);
+          try {
+            const blob = await upload(src.value.name, src.value, {
+              access: "public",
+              handleUploadUrl: "/api/blob/upload",
+              contentType: "application/pdf",
+            });
+            urls.push(blob.url);
+          } catch {
+            // Blob store not connected (no BLOB_READ_WRITE_TOKEN) → the client can't get
+            // an upload token. Point the user at the path that works with no setup.
+            throw new Error(
+              "File uploads aren't enabled on this deployment (no Vercel Blob store connected). Paste the PDF's URL instead, or connect a Blob store to enable uploads."
+            );
+          }
         }
       }
       setNote("Starting the pipeline…");
