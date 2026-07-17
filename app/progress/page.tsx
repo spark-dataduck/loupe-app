@@ -9,6 +9,8 @@ interface StepStatus {
   state: StepState;
   phase: string;
   error: string | null;
+  progress: number | null; // 0..1 while running, when the logs expose a fraction
+  detail: string | null; // e.g. "12 / 40"
 }
 interface PipelineStatus {
   step1: StepStatus;
@@ -25,6 +27,25 @@ function fmtElapsed(sec: number): string {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
+// The parser (an external VLM job) only logs "still polling" lines — no page
+// counts — so there's no real fraction to show. Estimate one from how long the
+// step has been running: an asymptotic curve that always advances but never
+// reaches 100% until the pipeline reports "done".
+const FAUX_TAU = 45; // seconds; ~63% at 45s, ~86% at 90s, ~95% cap
+function fauxProgress(elapsedSec: number): number {
+  return Math.min(0.95, 1 - Math.exp(-Math.max(0, elapsedSec) / FAUX_TAU));
+}
+
+// Collapse the repetitive VLM job-polling log line into one steady, legible
+// phase so the running step doesn't look frozen on a raw URL.
+function friendlyPhase(phase: string): string {
+  const p = phase.trim();
+  if (/HTTP Request|unstructured\.io|\/jobs\/|HTTP\/1\.1\s+200/i.test(p)) {
+    return "Extracting pages (visual model)…";
+  }
+  return p;
+}
+
 function StepCard({ n, title, step }: { n: number; title: string; step: StepStatus }) {
   const cls =
     step.state === "done"
@@ -34,6 +55,11 @@ function StepCard({ n, title, step }: { n: number; title: string; step: StepStat
         : step.state === "running"
           ? "active"
           : "";
+  const running = step.state === "running";
+  const pct = step.progress != null ? Math.round(step.progress * 100) : null;
+  // Label the bar with the raw count when we have it, else a percent, else a
+  // plain "working…" until the first countable log line lands.
+  const label = step.detail ?? (pct != null ? `${pct}%` : "working…");
   return (
     <div className={`step ${cls}`}>
       <div className="dot" aria-hidden>
@@ -50,17 +76,21 @@ function StepCard({ n, title, step }: { n: number; title: string; step: StepStat
         {step.state === "failed" ? (
           <div className="err">{step.error}</div>
         ) : (
-          <div className="phase">{step.phase}</div>
+          <div className="phase">{friendlyPhase(step.phase)}</div>
         )}
-        <div
-          className={`track ${
-            step.state === "done" ? "full" : step.state === "failed" ? "fail" : "indet"
-          }`}
-        >
-          <i />
-        </div>
+        {/* A bar appears only on the step actually working, and it fills to real
+            progress rather than looping. Queued and finished steps show none. */}
+        {running && (
+          <div className="prog">
+            <div className="track">
+              <i style={{ width: `${pct ?? 0}%` }} />
+            </div>
+            <span className="pct">{label}</span>
+          </div>
+        )}
       </div>
-      <div className="readout" style={{ textTransform: "capitalize" }}>
+      <div className="readout" style={{ textTransform: "capitalize", display: "flex", alignItems: "center", gap: 6 }}>
+        {running && <span className="live" aria-hidden />}
         {step.state}
       </div>
     </div>
@@ -78,8 +108,26 @@ function ProgressInner() {
   const [elapsed, setElapsed] = useState(0);
   const [fatal, setFatal] = useState<string | null>(null);
   const startedAt = useRef(Date.now());
+  // When each step first started running — anchors the time-based faux bar.
+  const stepStart = useRef<{ 1?: number; 2?: number }>({});
 
   const missing = !parseRun || !baselineEmbedRun;
+
+  useEffect(() => {
+    if (!status) return;
+    const now = Date.now();
+    if (status.step1.state === "running" && stepStart.current[1] == null) stepStart.current[1] = now;
+    if (status.step2.state === "running" && stepStart.current[2] == null) stepStart.current[2] = now;
+  }, [status]);
+
+  // Give a running step a moving bar: real fraction when the logs expose one,
+  // otherwise an elapsed-time estimate. `elapsed` re-renders us each second.
+  const withFaux = (step: StepStatus, n: 1 | 2): StepStatus => {
+    if (step.state !== "running" || step.progress != null) return step;
+    const start = stepStart.current[n];
+    const secs = start != null ? (Date.now() - start) / 1000 : 0;
+    return { ...step, progress: fauxProgress(secs) };
+  };
 
   useEffect(() => {
     if (missing) return;
@@ -118,10 +166,16 @@ function ProgressInner() {
 
   if (missing) {
     return (
-      <main className="wrap" style={{ padding: "64px 0" }}>
-        <div className="notice warn">
-          Missing run parameters. <button className="link-quiet" onClick={() => router.push("/")}>Start over</button>.
-        </div>
+      <main className="wrap" style={{ padding: "clamp(36px, 7vh, 72px) 0 64px" }}>
+        <h1 className="display" style={{ fontSize: "clamp(26px, 4.5vw, 36px)" }}>
+          Nothing indexing right now
+        </h1>
+        <p className="lede">
+          This screen tracks a document as it&apos;s parsed and indexed. Add one to see it here.
+        </p>
+        <button className="btn btn-primary" onClick={() => router.push("/")}>
+          Add a document <ArrowRight size={16} aria-hidden />
+        </button>
       </main>
     );
   }
@@ -137,36 +191,25 @@ function ProgressInner() {
       </h1>
       <p className="lede" style={{ marginBottom: 22 }}>
         <span className="readout">elapsed {fmtElapsed(elapsed)}</span>
-        {!done && !failed && " · this can take a few minutes for a long PDF"}
+        {!done && !failed && " · parsing runs ~5–6 seconds per page (visual extraction), up to 15,000 pages a month"}
       </p>
 
-      {status ? (
-        <>
-          <StepCard n={1} title={STEP_TITLES[0]} step={status.step1} />
-          <StepCard n={2} title={STEP_TITLES[1]} step={status.step2} />
-        </>
-      ) : (
-        <>
-          <div className="step">
-            <div className="dot">1</div>
-            <div style={{ minWidth: 0 }}>
-              <h3>{STEP_TITLES[0]}</h3>
-              <div className="phase">Contacting the pipeline…</div>
-              <div className="track indet"><i /></div>
-            </div>
-            <div className="readout">queued</div>
-          </div>
-          <div className="step">
-            <div className="dot">2</div>
-            <div style={{ minWidth: 0 }}>
-              <h3>{STEP_TITLES[1]}</h3>
-              <div className="phase">Waiting for parse…</div>
-              <div className="track indet"><i /></div>
-            </div>
-            <div className="readout">queued</div>
-          </div>
-        </>
-      )}
+      <StepCard
+        n={1}
+        title={STEP_TITLES[0]}
+        step={withFaux(
+          status?.step1 ?? { state: "queued", phase: "Contacting the pipeline…", error: null, progress: null, detail: null },
+          1
+        )}
+      />
+      <StepCard
+        n={2}
+        title={STEP_TITLES[1]}
+        step={withFaux(
+          status?.step2 ?? { state: "queued", phase: "Not started yet", error: null, progress: null, detail: null },
+          2
+        )}
+      />
 
       {fatal && !done && (
         <div className="notice" style={{ marginTop: 16 }}>

@@ -10,6 +10,8 @@ export interface StepStatus {
   state: StepState;
   phase: string; // human-readable live phase (last meaningful log line)
   error: string | null; // reason when state === "failed"
+  progress: number | null; // 0..1 when the logs expose a fraction, else null
+  detail: string | null; // e.g. "12 / 40" to sit beside the bar
 }
 
 export interface PipelineStatus {
@@ -86,6 +88,31 @@ function lastMeaningfulLine(lines: string[]): string {
   return "";
 }
 
+// Pull a "current / total" fraction out of a log line. Matches the common
+// shapes the parse/embed flights emit — "page 12 of 40", "12/40", "batch 3/10".
+// Tune the leading keyword list if your logs word it differently.
+const FRACTION_RE = /(?:page|batch|chunk|doc(?:ument)?|row|step)?\s*(\d{1,7})\s*(?:\/|of)\s*(\d{1,7})/gi;
+
+/** Read progress from the most recent log line that carries a fraction.
+ *  Using the latest line (not a global max) keeps the number honest when the
+ *  log mixes different counters. Returns null when nothing parses. */
+function parseProgress(lines: string[]): { progress: number | null; detail: string | null } {
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const l = lines[i].trim();
+    if (!l) continue;
+    let m: RegExpExecArray | null;
+    let last: { cur: number; total: number } | null = null;
+    FRACTION_RE.lastIndex = 0;
+    while ((m = FRACTION_RE.exec(l))) {
+      const cur = Number(m[1]);
+      const total = Number(m[2]);
+      if (total > 0 && cur <= total) last = { cur, total }; // last match on the line
+    }
+    if (last) return { progress: Math.min(1, last.cur / last.total), detail: `${last.cur} / ${last.total}` };
+  }
+  return { progress: null, detail: null };
+}
+
 function extractFailureReason(lines: string[]): string {
   const markers = /FAILED|Error|Traceback|Exception|SystemExit|Killed|OOM/i;
   const hits = lines.map((l) => l.trim()).filter((l) => l && markers.test(l));
@@ -99,13 +126,15 @@ async function stepStatus(flightId: string, runNumber: number): Promise<StepStat
   const state = mapState(runStatus);
   const lines = await getLogTail(flightId, runNumber);
   if (state === "failed") {
-    return { state, phase: "Failed", error: extractFailureReason(lines) };
+    return { state, phase: "Failed", error: extractFailureReason(lines), progress: null, detail: null };
   }
-  const phase =
-    state === "done"
-      ? "Complete"
-      : lastMeaningfulLine(lines) || (state === "queued" ? "Queued…" : "Working…");
-  return { state, phase, error: null };
+  if (state === "done") {
+    return { state, phase: "Complete", error: null, progress: 1, detail: null };
+  }
+  const phase = lastMeaningfulLine(lines) || (state === "queued" ? "Queued…" : "Working…");
+  // Progress is only meaningful while running; queued runs have no logs yet.
+  const { progress, detail } = state === "running" ? parseProgress(lines) : { progress: null, detail: null };
+  return { state, phase, error: null, progress, detail };
 }
 
 // ── Public operations ─────────────────────────────────────────────────────────
@@ -158,21 +187,19 @@ export async function pipelineStatus(
 ): Promise<PipelineStatus> {
   const step1 = await stepStatus(CONFIG.parseFlightId, parseRun);
 
-  // Step 2 only exists once parse has (at least partially) loaded tables and
-  // spawned the embed-index run.
-  let step2: StepStatus = { state: "queued", phase: "Waiting for parse…", error: null };
+  // The parse flight spawns the embed-index run as soon as it has loaded tables,
+  // so embedding often runs WHILE parsing is still going. Always look for that
+  // spawned run rather than assuming step 2 waits for parse to finish — otherwise
+  // step 2 shows a misleading "waiting" state while it's actually running.
+  let step2: StepStatus = { state: "queued", phase: "Not started yet", error: null, progress: null, detail: null };
   let shareRefreshed = false;
 
-  if (step1.state === "done" || step1.state === "failed") {
-    const embedRun = await findSpawnedEmbedRun(baselineEmbedRun);
-    if (embedRun != null) {
-      step2 = await stepStatus(CONFIG.embedIndexFlightId, embedRun);
-    } else if (step1.state === "failed") {
-      // Parse failed before loading anything → no embed run will spawn.
-      step2 = { state: "failed", phase: "Skipped", error: "Parsing failed; nothing to index." };
-    } else {
-      step2 = { state: "queued", phase: "Starting…", error: null };
-    }
+  const embedRun = await findSpawnedEmbedRun(baselineEmbedRun);
+  if (embedRun != null) {
+    step2 = await stepStatus(CONFIG.embedIndexFlightId, embedRun);
+  } else if (step1.state === "failed") {
+    // Parse failed before loading anything → no embed run will spawn.
+    step2 = { state: "failed", phase: "Skipped", error: "Parsing failed; nothing to index.", progress: null, detail: null };
   }
 
   const done = step2.state === "done";
