@@ -1,7 +1,13 @@
 # Loupe Ingest App — Design
 
 - **Date:** 2026-07-17
-- **Status:** Approved (design); pending spec review
+- **Status:** Built & locally verified against the live demo org. See `README.md` for the
+  as-built state and the final share/embed wiring decision (the Dive's `REQUIRED_DATABASES`
+  points at the org share so it's shareable internally; the owner's standalone view is the
+  accepted trade-off). During the build, `document-embed-index`'s unused `create_fts_index`
+  step was dropped — it caused false run failures (stopwords transaction conflict) while the
+  Dive already reconstructs BM25 inline. Pending only the tokens the user adds
+  (`MD_EMBED_ADMIN_TOKEN`/`MD_EMBED_SERVICE_ACCOUNT`, `BLOB_READ_WRITE_TOKEN`).
 - **Project home:** `personal_projects/playground/loupe-app/` (own git repo, deploys to Vercel)
 - **Related:** the `document-loupe` Dive (`dives-reference/dives/document-loupe/`) and the two-flight pipeline (`personal_projects/playground/pdf-parsing-analysis/`)
 
