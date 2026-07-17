@@ -128,7 +128,11 @@ export default function Ingest() {
       </div>
 
       {/* Dropzone */}
-      <div
+      {/* A <label> opens the file picker natively when clicked (its contained input),
+          so there's no JS onClick re-dispatching into a bubbling loop. Drag/drop still
+          handled explicitly. */}
+      <label
+        htmlFor="loupe-file"
         className={`drop${over ? " over" : ""}`}
         onDragOver={(e) => {
           e.preventDefault();
@@ -140,25 +144,27 @@ export default function Ingest() {
           setOver(false);
           addFiles(e.dataTransfer.files);
         }}
-        onClick={() => fileInput.current?.click()}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && fileInput.current?.click()}
-        style={{ cursor: "pointer" }}
+        style={{ cursor: "pointer", display: "block" }}
       >
         <FileUp size={20} aria-hidden style={{ color: "var(--glass)", marginBottom: 6 }} />
         <div>
           <strong>Drop PDFs here</strong> or <span style={{ color: "var(--glass)" }}>browse</span>
         </div>
-        <input
-          ref={fileInput}
-          type="file"
-          accept="application/pdf"
-          multiple
-          hidden
-          onChange={(e) => addFiles(e.target.files)}
-        />
-      </div>
+      </label>
+      {/* Sibling of the label (associated via htmlFor/id): the input's click bubbles to
+          <body>, not back into the label, so one click opens exactly one picker. */}
+      <input
+        id="loupe-file"
+        ref={fileInput}
+        type="file"
+        accept="application/pdf"
+        multiple
+        hidden
+        onChange={(e) => {
+          addFiles(e.target.files);
+          e.target.value = ""; // allow re-selecting the same file
+        }}
+      />
 
       {/* Added sources */}
       {sources.length > 0 && (
