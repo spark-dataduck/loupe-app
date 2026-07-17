@@ -99,66 +99,68 @@ export default function Ingest() {
   }
 
   return (
-    <main className="wrap" style={{ padding: "clamp(36px, 8vh, 84px) 0 64px" }}>
-      <p className="eyebrow">MotherDuck · hybrid search</p>
+    <main className="wrap" style={{ padding: "clamp(40px, 9vh, 92px) 0 72px" }}>
       <h1 className="display">
         Bring a document
         <br />
         into focus.
       </h1>
       <p className="lede">
-        Add a PDF — paste a link or drop a file. Loupe parses it, indexes every passage for
-        meaning and keyword, and hands you a search you can point at any question.
+        Drop a PDF or paste a link. Loupe reads it, indexes every passage by meaning and keyword,
+        and gives you a search you can point at any question.
       </p>
 
-      {/* URL row */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-        <div style={{ position: "relative", flex: 1 }}>
-          <Link2
-            size={16}
-            aria-hidden
-            style={{ position: "absolute", left: 13, top: 14, color: "var(--ink-3)" }}
-          />
-          <input
-            className="field"
-            style={{ paddingLeft: 36 }}
-            placeholder="https://…/document.pdf"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addUrl())}
-            disabled={busy}
-            aria-label="PDF URL"
-          />
-        </div>
-        <button className="btn btn-ghost" onClick={addUrl} disabled={busy || !draft.trim()}>
-          Add
-        </button>
-      </div>
-
-      {/* Dropzone */}
-      {/* A <label> opens the file picker natively when clicked (its contained input),
-          so there's no JS onClick re-dispatching into a bubbling loop. Drag/drop still
-          handled explicitly. */}
-      <label
-        htmlFor="loupe-file"
-        className={`drop${over ? " over" : ""}`}
+      {/* One specimen tray: drop a file up top, or paste a link below.
+          Drag/drop is handled on the whole tray; the <label> wraps only the
+          drop area so clicking the URL field never opens the file picker. */}
+      <section
+        className={`tray frame${over ? " over" : ""}`}
         onDragOver={(e) => {
           e.preventDefault();
           setOver(true);
         }}
-        onDragLeave={() => setOver(false)}
+        onDragLeave={(e) => {
+          // ignore leaves into child elements
+          if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+          setOver(false);
+        }}
         onDrop={(e) => {
           e.preventDefault();
           setOver(false);
           addFiles(e.dataTransfer.files);
         }}
-        style={{ cursor: "pointer", display: "block" }}
       >
-        <FileUp size={20} aria-hidden style={{ color: "var(--glass)", marginBottom: 6 }} />
-        <div>
-          <strong>Drop PDFs here</strong> or <span style={{ color: "var(--glass)" }}>browse</span>
+        <span className="reticle" aria-hidden />
+
+        <label htmlFor="loupe-file" className="tray-drop">
+          <FileUp className="lens-in" size={22} aria-hidden />
+          <div>
+            <strong>Drop a PDF here</strong> or <span className="browse">browse</span>
+          </div>
+        </label>
+
+        <div className="tray-or">paste a link instead</div>
+
+        <div className="tray-url">
+          <div className="url-wrap">
+            <Link2 className="url-ico" size={16} aria-hidden />
+            <input
+              className="field"
+              style={{ paddingLeft: 36 }}
+              placeholder="https://…/document.pdf"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addUrl())}
+              disabled={busy}
+              aria-label="PDF URL"
+            />
+          </div>
+          <button className="btn btn-ghost" onClick={addUrl} disabled={busy || !draft.trim()}>
+            Add
+          </button>
         </div>
-      </label>
+      </section>
+
       {/* Sibling of the label (associated via htmlFor/id): the input's click bubbles to
           <body>, not back into the label, so one click opens exactly one picker. */}
       <input
@@ -197,20 +199,24 @@ export default function Ingest() {
         </div>
       )}
 
-      {/* Actions */}
-      <div style={{ display: "flex", alignItems: "center", gap: 18, marginTop: 26, flexWrap: "wrap" }}>
+      {/* Primary action, then a quiet secondary path on its own line */}
+      <div style={{ marginTop: 26 }}>
         <button className="btn btn-primary" onClick={submit} disabled={busy || sources.length === 0}>
           <Crosshair size={16} aria-hidden />
           {busy ? note || "Working…" : "Parse & index"}
           {!busy && <ArrowRight size={16} aria-hidden />}
         </button>
-        <button className="link-quiet" onClick={() => router.push("/explore")} disabled={busy}>
-          or explore documents already in Loupe →
-        </button>
       </div>
+      <p className="readout" style={{ marginTop: 16, color: "var(--ink-3)" }}>
+        Already indexed something?{" "}
+        <button className="link-quiet" onClick={() => router.push("/explore")} disabled={busy}>
+          Search documents in Loupe →
+        </button>
+      </p>
 
       <p className="readout" style={{ marginTop: 40, color: "var(--ink-3)" }}>
-        Parsing a long PDF takes a few minutes (VLM extraction). You can watch both steps on the next screen.
+        Parsing runs ~5–6 seconds per page (visual extraction), up to 15,000 pages a month. You can
+        watch each step on the next screen.
       </p>
     </main>
   );

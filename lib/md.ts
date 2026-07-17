@@ -59,3 +59,30 @@ export async function queryOne<T = Record<string, unknown>>(
   const rows = await query<T>(sql);
   return rows.length ? rows[0] : null;
 }
+
+/** Run statements against a specific database on ONE connection: `USE <db>`
+ *  first (so it's attached and current), then each statement in order. Returns
+ *  the rows from the final statement. `db` must be a trusted constant — it is
+ *  interpolated into `USE`. */
+export async function queryIn<T = Record<string, unknown>>(
+  db: string,
+  sqls: string[]
+): Promise<T[]> {
+  const instance = await getInstance();
+  const connection = await instance.connect();
+  try {
+    await connection.runAndReadAll(`USE ${db}`);
+    let rows: T[] = [];
+    for (const sql of sqls) {
+      const reader = await connection.runAndReadAll(sql);
+      rows = reader.getRowObjects().map((row) => {
+        const out: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(row)) out[k] = coerce(v);
+        return out as T;
+      });
+    }
+    return rows;
+  } finally {
+    connection.disconnectSync();
+  }
+}

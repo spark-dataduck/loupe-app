@@ -62,21 +62,23 @@ function ExploreInner() {
   }, []);
 
   return (
-    <main style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-      {/* Sub-header */}
-      <div className="wrap" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", borderBottom: "1px solid var(--line)" }}>
-        <div className="readout" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <button className="link-quiet" onClick={() => router.push("/")}>
-            <ArrowLeft size={13} aria-hidden style={{ verticalAlign: "-2px", marginRight: 4 }} />
-            Search another document
-          </button>
-        </div>
-        {doc && <span className="readout" style={{ color: "var(--ink-3)" }}>focused: {doc}</span>}
+    <main className="stage">
+      {/* Dark instrument toolbar */}
+      <div className="exam-bar">
+        <button className="back" onClick={() => router.push("/")}>
+          <ArrowLeft size={14} aria-hidden />
+          Search another document
+        </button>
+        {doc && (
+          <span className="focused">
+            in focus <b>{doc}</b>
+          </span>
+        )}
       </div>
 
       {loading && (
         <div className="center">
-          <p className="readout">Opening Loupe…</p>
+          <p className="readout">Focusing the lens…</p>
         </div>
       )}
 
@@ -101,16 +103,20 @@ function ExploreInner() {
         </div>
       )}
 
+      {/* The lit specimen: a framed viewer set on the dark mat */}
       {!loading && session && (
-        <div className="frameWrap">
-          <iframe
-            ref={frame}
-            className="diveFrame"
-            title="Loupe — hybrid document search"
-            src={`${EMBED_ORIGIN}/sandbox/#session=${session}`}
-            sandbox="allow-scripts allow-same-origin"
-            allow="cross-origin-isolated"
-          />
+        <div className="stage-mat">
+          <div className="viewer frame">
+            <iframe
+              ref={frame}
+              className="diveFrame"
+              title="Loupe — hybrid document search"
+              src={`${EMBED_ORIGIN}/sandbox/#session=${session}`}
+              sandbox="allow-scripts allow-same-origin"
+              allow="cross-origin-isolated"
+            />
+            <span className="reticle" aria-hidden />
+          </div>
         </div>
       )}
     </main>
@@ -119,7 +125,7 @@ function ExploreInner() {
 
 export default function ExplorePage() {
   return (
-    <Suspense fallback={<main className="center"><p className="readout">Loading…</p></main>}>
+    <Suspense fallback={<main className="stage"><div className="center"><p className="readout">Loading…</p></div></main>}>
       <ExploreInner />
     </Suspense>
   );
