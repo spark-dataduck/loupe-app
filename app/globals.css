@@ -1,0 +1,195 @@
+/* ============================================================================
+   Loupe — design system
+   Instrument aesthetic: warm paper ground, ink text, one coated-teal "glass"
+   accent, a reticle-red reserved for focus + failure. Serif display, sans UI,
+   mono readouts. No external assets; font stacks degrade to system faces.
+   ============================================================================ */
+
+:root {
+  --paper: #fbfaf6;
+  --paper-2: #f4f1e9; /* raised card */
+  --paper-3: #ece7db; /* wells / tracks */
+  --ink: #1a1917;
+  --ink-2: #4b473f; /* muted */
+  --ink-3: #8a8578; /* faint / captions */
+  --line: #ddd6c7; /* hairline */
+  --glass: #0f6e7a; /* coated teal accent */
+  --glass-2: #0b545d; /* teal pressed */
+  --glass-tint: #e6efee; /* teal wash */
+  --reticle: #c6402f; /* focus + error */
+  --reticle-tint: #f7e6e2;
+  --mark: #fbe7a8; /* highlight */
+
+  --serif: Georgia, "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+
+  --r: 10px; /* radius */
+  --pad: clamp(20px, 5vw, 56px);
+  --maxw: 760px;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+a { color: var(--glass); text-underline-offset: 2px; }
+
+/* ── Layout ─────────────────────────────────────────────────────────────── */
+.shell { min-height: 100dvh; display: flex; flex-direction: column; }
+.wrap { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 var(--pad); }
+
+/* ── Top brand bar ──────────────────────────────────────────────────────── */
+.topbar {
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter: saturate(1.1) blur(4px);
+  position: sticky; top: 0; z-index: 10;
+}
+.topbar .row {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 60px;
+}
+.brand {
+  display: inline-flex; align-items: center; gap: 10px;
+  color: var(--ink); text-decoration: none; border: 0; background: none;
+  cursor: pointer; font: inherit; padding: 0;
+}
+.brand .lens {
+  width: 22px; height: 22px; color: var(--glass);
+  transition: transform 0.25s ease;
+}
+.brand:hover .lens { transform: rotate(-12deg) scale(1.06); }
+.brand .word {
+  font-family: var(--serif); font-size: 20px; letter-spacing: 0.2px;
+}
+.brand .word b { font-weight: 600; }
+.brand .tag {
+  font-family: var(--mono); font-size: 11px; color: var(--ink-3);
+  text-transform: uppercase; letter-spacing: 0.14em; margin-left: 2px;
+}
+
+/* ── Typography ─────────────────────────────────────────────────────────── */
+.display {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: clamp(30px, 6vw, 46px);
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  margin: 0 0 12px;
+}
+.lede { font-size: 17px; color: var(--ink-2); margin: 0 0 28px; max-width: 54ch; }
+.eyebrow {
+  font-family: var(--mono); font-size: 12px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--glass); margin: 0 0 14px;
+}
+.readout { font-family: var(--mono); font-size: 13px; color: var(--ink-2); }
+
+/* ── Controls ───────────────────────────────────────────────────────────── */
+.field {
+  width: 100%; font: inherit; color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line); border-radius: var(--r);
+  padding: 12px 14px; outline: none;
+}
+.field:focus { border-color: var(--glass); box-shadow: 0 0 0 3px var(--glass-tint); }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; justify-content: center;
+  font: inherit; font-weight: 550; cursor: pointer;
+  border-radius: var(--r); padding: 12px 20px; border: 1px solid transparent;
+  transition: background 0.15s ease, transform 0.05s ease;
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--glass); color: #fff; }
+.btn-primary:hover { background: var(--glass-2); }
+.btn-primary:disabled { background: var(--ink-3); cursor: not-allowed; }
+.btn-ghost { background: transparent; color: var(--glass); border-color: var(--line); }
+.btn-ghost:hover { background: var(--glass-tint); }
+.link-quiet {
+  background: none; border: 0; padding: 0; cursor: pointer; font: inherit;
+  color: var(--glass); text-decoration: underline; text-underline-offset: 3px;
+}
+
+/* ── Cards / surfaces ───────────────────────────────────────────────────── */
+.card {
+  background: var(--paper-2); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 18px 20px;
+}
+
+/* ── Chips ──────────────────────────────────────────────────────────────── */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  font-family: var(--mono); font-size: 12px; color: var(--ink-2);
+  background: var(--paper); border: 1px solid var(--line);
+  border-radius: 999px; padding: 5px 11px; display: inline-flex; gap: 6px;
+  align-items: center; max-width: 100%;
+}
+.chip .x { cursor: pointer; color: var(--ink-3); }
+.chip .x:hover { color: var(--reticle); }
+
+/* ── Dropzone ───────────────────────────────────────────────────────────── */
+.drop {
+  border: 1.5px dashed var(--line); border-radius: var(--r);
+  padding: 26px; text-align: center; color: var(--ink-2);
+  background: var(--paper); transition: border-color 0.15s, background 0.15s;
+}
+.drop.over { border-color: var(--glass); background: var(--glass-tint); }
+
+/* ── Step cards (progress) ──────────────────────────────────────────────── */
+.step {
+  display: grid; grid-template-columns: 30px 1fr auto; gap: 14px;
+  align-items: start; padding: 18px 20px;
+  background: var(--paper-2); border: 1px solid var(--line); border-radius: var(--r);
+}
+.step + .step { margin-top: 14px; }
+.step.active { border-color: var(--glass); box-shadow: 0 0 0 3px var(--glass-tint); }
+.step.failed { border-color: var(--reticle); box-shadow: 0 0 0 3px var(--reticle-tint); }
+.step .dot {
+  width: 26px; height: 26px; border-radius: 999px; display: grid; place-items: center;
+  border: 1.5px solid var(--line); color: var(--ink-3); font-family: var(--mono);
+  font-size: 13px; margin-top: 1px;
+}
+.step.active .dot { border-color: var(--glass); color: var(--glass); }
+.step.done .dot { border-color: var(--glass); background: var(--glass); color: #fff; }
+.step.failed .dot { border-color: var(--reticle); background: var(--reticle); color: #fff; }
+.step h3 { margin: 0 0 3px; font-size: 15px; font-weight: 600; }
+.step .phase { font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); word-break: break-word; }
+.step .err { color: var(--reticle); font-family: var(--mono); font-size: 12.5px; word-break: break-word; }
+.step .elapsed { font-family: var(--mono); font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+
+/* indeterminate bar */
+.track { height: 5px; background: var(--paper-3); border-radius: 999px; overflow: hidden; margin-top: 10px; }
+.track > i { display: block; height: 100%; background: var(--glass); border-radius: 999px; }
+.track.indet > i { width: 40%; animation: slide 1.15s ease-in-out infinite; }
+.track.full > i { width: 100%; }
+.track.fail > i { width: 100%; background: var(--reticle); }
+@keyframes slide { 0% { margin-left: -42%; } 100% { margin-left: 102%; } }
+
+/* ── Notices ────────────────────────────────────────────────────────────── */
+.notice {
+  border-radius: var(--r); padding: 14px 16px; font-size: 14px;
+  border: 1px solid var(--line); background: var(--paper-2); color: var(--ink-2);
+}
+.notice.warn { border-color: var(--reticle); background: var(--reticle-tint); color: #7a2417; }
+
+/* ── Explore ────────────────────────────────────────────────────────────── */
+.frameWrap { flex: 1; display: flex; min-height: 0; }
+.diveFrame { flex: 1; width: 100%; border: 0; }
+
+.center { flex: 1; display: grid; place-items: center; text-align: center; padding: var(--pad); }
+
+@media (prefers-reduced-motion: reduce) {
+  .track.indet > i { animation: none; width: 60%; }
+  .brand .lens { transition: none; }
+}
