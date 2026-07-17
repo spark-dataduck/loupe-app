@@ -39,9 +39,9 @@ Copy `.env.example` → `.env.local` for local dev, and set the same keys in Ver
 
 | Var | Needed for | Status |
 |---|---|---|
-| `MOTHERDUCK_TOKEN` | trigger/poll flights, `UPDATE SHARE` | **set locally** (= `DEMO_MOTHERDUCK_TOKEN`) |
-| `MD_EMBED_ADMIN_TOKEN` | mint embed sessions | **you add in Vercel** (see setup) |
-| `MD_EMBED_SERVICE_ACCOUNT` | the account the embed runs as | **you add in Vercel** |
+| `MOTHERDUCK_TOKEN` | trigger/poll flights, `UPDATE SHARE`, **and mint embed sessions** | **set locally** (= `DEMO_MOTHERDUCK_TOKEN`) |
+| `MD_EMBED_SERVICE_ACCOUNT` | the account the embed **runs as** (empty service account's username) | **you add** (see setup) |
+| `MD_EMBED_ADMIN_TOKEN` | optional — a different admin bearer than `MOTHERDUCK_TOKEN` | leave blank to reuse `MOTHERDUCK_TOKEN` |
 | `BLOB_READ_WRITE_TOKEN` | local PDF uploads | auto when you connect a Vercel Blob store |
 | `PARSE_FLIGHT_ID`, `EMBED_INDEX_FLIGHT_ID`, `LOUPE_DIVE_ID`, `MD_SHARE_URL` | — | defaulted in `lib/config.ts` |
 
@@ -53,11 +53,15 @@ No `NEXT_PUBLIC_*` — none of these reach the browser. The embed session (a rea
 The app runs today via the **URL-paste** path with `MOTHERDUCK_TOKEN` alone. To light up
 local uploads and the embedded Dive:
 
-1. **Service account (embed).** In the demo org (Settings → Service accounts) create a
-   **dedicated, empty** account with the **Admin** role. Empty matters: the embed attaches
-   the share aliased `document_search`, which conflicts if that account owns a DB of the
-   same name. Copy its **read-write admin token** → `MD_EMBED_ADMIN_TOKEN`, and its
-   username → `MD_EMBED_SERVICE_ACCOUNT`.
+1. **Service account (embed) — one new thing.** In the demo org (Settings → Service
+   accounts) create a **dedicated, empty** account. Set its **username** →
+   `MD_EMBED_SERVICE_ACCOUNT`. That's it — the Dive *runs as* this account, and it must be
+   empty because the embed attaches the share aliased `document_search`, which conflicts if
+   the account owns a DB of that name (this is why your own account can't be the run-as).
+   You do **not** need a new token: the session is minted with `MOTHERDUCK_TOKEN` (an
+   org-admin token) as the bearer. Only set `MD_EMBED_ADMIN_TOKEN` if you want a *different*
+   admin token for minting. (Same shape as the `embedded-dive-test` reference:
+   bearer = `MOTHERDUCK_TOKEN`, body = `{ username }`.)
 2. **Share** — already created (`md:_share/document_search/540bd0c4-…`, org-scoped,
    discoverable). The service account can read it as an org member.
 3. **Vercel Blob** — in the Vercel project, connect a Blob store; Vercel injects
@@ -98,8 +102,9 @@ Validated live against the demo org (2026-07-17):
   log reason), and `UPDATE SHARE` executes.
 - ✅ All three screens render (Ingest, live Progress against a real run, Explore fallback).
 - ⏳ **Blob upload** and the **live embedded Dive** are code-complete but need
-  `BLOB_READ_WRITE_TOKEN` and `MD_EMBED_ADMIN_TOKEN`/`MD_EMBED_SERVICE_ACCOUNT` — until then
-  the URL-paste path and the "Open in MotherDuck" fallback cover the flow.
+  `BLOB_READ_WRITE_TOKEN` and `MD_EMBED_SERVICE_ACCOUNT` (an empty service account's
+  username; the embed bearer reuses `MOTHERDUCK_TOKEN`) — until then the URL-paste path and
+  the "Open in MotherDuck" fallback cover the flow.
 
 ## Owner-view trade-off (noted)
 

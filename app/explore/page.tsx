@@ -109,6 +109,7 @@ function ExploreInner() {
             title="Loupe — hybrid document search"
             src={`${EMBED_ORIGIN}/sandbox/#session=${session}`}
             sandbox="allow-scripts allow-same-origin"
+            allow="cross-origin-isolated"
           />
         </div>
       )}
