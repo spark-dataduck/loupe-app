@@ -1,9 +1,18 @@
 import { DuckDBInstance } from "@duckdb/node-api";
 import { CONFIG, assertMotherduckToken } from "./config";
 
-// Single MotherDuck instance per warm serverless container. Connecting to md:
-// loads the motherduck extension (downloaded once); home_directory=/tmp keeps that
-// write inside the only writable dir on a Vercel Lambda (harmless locally).
+// Vercel Lambda ships no writable HOME, but DuckDB resolves ~/.duckdb from the HOME env
+// var when it autoloads the MotherDuck extension — with HOME empty it throws "Can't find
+// the home directory at ''". /tmp is the only writable dir on Lambda, so force HOME there
+// (on Vercel, or anywhere HOME is unset). This runs before any DuckDB call. Harmless
+// locally, where HOME is already set and we're not on Vercel.
+if (process.env.VERCEL || !process.env.HOME) {
+  process.env.HOME = "/tmp";
+}
+const DUCKDB_HOME = process.env.HOME || "/tmp";
+
+// Single MotherDuck instance per warm serverless container. Connecting to md: loads the
+// motherduck extension (downloaded once) into <home>/.duckdb.
 let instancePromise: Promise<DuckDBInstance> | null = null;
 
 function getInstance(): Promise<DuckDBInstance> {
@@ -11,7 +20,10 @@ function getInstance(): Promise<DuckDBInstance> {
   if (!instancePromise) {
     instancePromise = DuckDBInstance.create(
       `md:?motherduck_token=${CONFIG.motherduckToken}`,
-      { home_directory: "/tmp" }
+      {
+        home_directory: DUCKDB_HOME,
+        extension_directory: `${DUCKDB_HOME}/.duckdb/extensions`,
+      }
     );
   }
   return instancePromise;
