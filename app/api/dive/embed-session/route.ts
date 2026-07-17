@@ -5,14 +5,13 @@ import { errMessage } from "@/lib/http";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Mint a read-only embed session for the Loupe Dive, matching the reference example:
-// bearer = an admin token (the main MOTHERDUCK_TOKEN qualifies; a dedicated
-// MD_EMBED_ADMIN_TOKEN overrides it), body = { username: <run-as service account> }.
-// The admin token stays server-side; only the short-lived (24h) read-only session string
-// reaches the browser. No `required_resources` — the Dive's own REQUIRED_DATABASES already
-// points at the org share, and the (empty) service account attaches it cleanly. We add
-// `initial_state.doc` so the Dive opens focused on the just-added document. No `version`
-// → always the latest Dive.
+// Mint a read-only embed session for the Loupe Dive. Bearer = an admin token (the main
+// MOTHERDUCK_TOKEN qualifies; a dedicated MD_EMBED_ADMIN_TOKEN overrides it). The admin
+// token stays server-side; only the short-lived (24h) read-only session string reaches the
+// browser. We pin the configured org share (MD_SHARE_URL) via `required_resources`, aliased
+// document_search, so the embed reads the corpus from the share the app is configured with
+// (authoritative, independent of the Dive's own REQUIRED_DATABASES). `initial_state.doc`
+// opens the Dive focused on the just-added document. No `version` → always the latest Dive.
 export async function POST(req: Request) {
   if (!isEmbedConfigured()) {
     return NextResponse.json(
@@ -32,7 +31,10 @@ export async function POST(req: Request) {
     // no body is fine — open the corpus without a pre-selected doc
   }
 
-  const payload: Record<string, unknown> = { username: CONFIG.embedServiceAccount };
+  const payload: Record<string, unknown> = {
+    username: CONFIG.embedServiceAccount,
+    required_resources: [{ url: CONFIG.shareUrl, alias: CONFIG.db }],
+  };
   if (doc) payload.initial_state = { doc };
 
   try {
