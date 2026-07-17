@@ -5,3 +5,8 @@ node_modules/
 .vercel/
 *.log
 .DS_Store
+
+# test + scratch
+playwright-report/
+test-results/
+.last_start.json
