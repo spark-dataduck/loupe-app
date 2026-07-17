@@ -8,7 +8,7 @@
   step was dropped — it caused false run failures (stopwords transaction conflict) while the
   Dive already reconstructs BM25 inline. Pending only the tokens the user adds
   (`MD_EMBED_ADMIN_TOKEN`/`MD_EMBED_SERVICE_ACCOUNT`, `BLOB_READ_WRITE_TOKEN`).
-- **Project home:** `personal_projects/playground/loupe-app/` (own git repo, deploys to Vercel)
+- **Project home:** `work_projects/loupe-app/` (own git repo → GitHub, deploys to Vercel)
 - **Related:** the `document-loupe` Dive (`dives-reference/dives/document-loupe/`) and the two-flight pipeline (`personal_projects/playground/pdf-parsing-analysis/`)
 
 ## 1. Goal
