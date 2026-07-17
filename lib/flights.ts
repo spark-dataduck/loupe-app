@@ -153,7 +153,17 @@ export async function triggerParse(urls: string[]): Promise<TriggerResult> {
   );
   const baselineEmbedRun = baselineRow?.m ?? 0;
 
-  const entries = urls.map((u, i) => `'url${i + 1}': '${u}'`).join(", ");
+  // MD_RUN_FLIGHT MERGES this config over the flight's stored default config,
+  // so any url slot we DON'T set keeps whatever the flight was saved with. The
+  // parse flight has a stray default (url10 → a sample PDF), which otherwise
+  // gets parsed on every run alongside the user's document. Set all 12 slots
+  // explicitly — provided URLs first, empty for the rest — so no leftover
+  // default can sneak into the run. Empty values are ignored by the flight.
+  const MAX_SLOTS = 12;
+  const entries = Array.from(
+    { length: MAX_SLOTS },
+    (_, i) => `'url${i + 1}': '${urls[i] ?? ""}'`
+  ).join(", ");
   const runRow = await queryOne<{ run_number: number }>(
     `SELECT run_number FROM MD_RUN_FLIGHT(flight_id := '${CONFIG.parseFlightId}', config := MAP {${entries}})`
   );
