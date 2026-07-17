@@ -2,8 +2,11 @@
 
 import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { upload } from "@vercel/blob/client";
 import { Crosshair, FileUp, Link2, X, ArrowRight } from "lucide-react";
+
+// Vercel serverless functions cap the request body at ~4.5 MB. Uploads go through our
+// own /api/blob/upload route (server-side put), so files above this must use URL-paste.
+const MAX_UPLOAD_BYTES = 4_000_000;
 
 type Source =
   | { kind: "url"; value: string; label: string }
@@ -59,21 +62,18 @@ export default function Ingest() {
         if (src.kind === "url") {
           urls.push(src.value);
         } else {
-          setNote(`Uploading ${src.label}…`);
-          try {
-            const blob = await upload(src.value.name, src.value, {
-              access: "public",
-              handleUploadUrl: "/api/blob/upload",
-              contentType: "application/pdf",
-            });
-            urls.push(blob.url);
-          } catch {
-            // Blob store not connected (no BLOB_READ_WRITE_TOKEN) → the client can't get
-            // an upload token. Point the user at the path that works with no setup.
+          if (src.value.size > MAX_UPLOAD_BYTES) {
             throw new Error(
-              "File uploads aren't enabled on this deployment (no Vercel Blob store connected). Paste the PDF's URL instead, or connect a Blob store to enable uploads."
+              `"${src.label}" is ${(src.value.size / 1e6).toFixed(1)} MB — over the ~4.5 MB direct-upload limit. Paste its URL instead.`
             );
           }
+          setNote(`Uploading ${src.label}…`);
+          const fd = new FormData();
+          fd.append("file", src.value, src.value.name);
+          const up = await fetch("/api/blob/upload", { method: "POST", body: fd });
+          const upData = await up.json();
+          if (!up.ok) throw new Error(upData.error || `Upload failed (${up.status}).`);
+          urls.push(upData.url);
         }
       }
       setNote("Starting the pipeline…");
