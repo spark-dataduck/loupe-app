@@ -55,7 +55,7 @@ export default function DropPage() {
       if (!res.ok) throw new Error(data.error || `Drop failed (${res.status}).`);
       setDocs((d) => (d ? d.filter((x) => x.table !== table) : d));
       setNote(
-        `Dropped ${table}${data.droppedIndex ? " and its search index" : ""}.${
+        `Deleted ${table}${data.droppedIndex ? " and its search index" : ""}.${
           data.shareRefreshed ? "" : " The Dive may take a moment to catch up."
         }`
       );
@@ -73,9 +73,8 @@ export default function DropPage() {
         Manage documents
       </h1>
       <p className="lede">
-        Every document is a parsed table and its search index. Dropping one removes both from Loupe
-        and the Dive stops showing it. This can&apos;t be undone — you&apos;d re-add the PDF to bring
-        it back.
+        Every document is a parsed table and its search index. Delete drops both and can&apos;t be
+        undone.
       </p>
 
       {note && (
@@ -116,7 +115,7 @@ export default function DropPage() {
 
                 {isConfirming ? (
                   <div className="doc-confirm">
-                    <span className="readout">Drop table + index?</span>
+                    <span className="readout">Delete table + index?</span>
                     <button
                       className="btn btn-ghost btn-sm"
                       onClick={() => setConfirm(null)}
@@ -129,7 +128,7 @@ export default function DropPage() {
                       onClick={() => drop(d.table)}
                       disabled={isDropping}
                     >
-                      {isDropping ? "Dropping…" : "Drop"}
+                      {isDropping ? "Deleting…" : "Delete"}
                     </button>
                   </div>
                 ) : (
@@ -139,7 +138,7 @@ export default function DropPage() {
                     disabled={!!dropping}
                   >
                     <Trash2 size={15} aria-hidden />
-                    Drop
+                    Delete
                   </button>
                 )}
               </div>
