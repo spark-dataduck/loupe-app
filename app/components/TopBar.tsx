@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Crosshair, Menu, X, FileUp, Activity, Search, Trash2 } from "lucide-react";
 
 /**
@@ -30,16 +30,26 @@ export default function TopBar() {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   const examine = path?.startsWith("/explore");
+  const wrapRef = useRef<HTMLDivElement>(null);
 
   // Close on navigation.
   useEffect(() => setOpen(false), [path]);
 
-  // Close on Escape.
+  // Close on Escape or a click anywhere outside the menu. A document listener
+  // is used instead of an overlay because the top bar's backdrop-filter would
+  // trap a fixed-position scrim inside the bar's own box.
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    const onDown = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onDown);
+    };
   }, [open]);
 
   const isActive = (href: string) => (href === "/" ? path === "/" : path?.startsWith(href));
@@ -57,7 +67,7 @@ export default function TopBar() {
 
         <div className="nav-right">
           <span className="mode">{modeLabel(path)}</span>
-          <div className="menu-wrap">
+          <div className="menu-wrap" ref={wrapRef}>
             <button
               className="menu-btn"
               aria-label={open ? "Close menu" : "Open menu"}
@@ -88,8 +98,6 @@ export default function TopBar() {
           </div>
         </div>
       </div>
-
-      {open && <div className="menu-scrim" onClick={() => setOpen(false)} aria-hidden />}
     </header>
   );
 }

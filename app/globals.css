@@ -336,7 +336,6 @@ a { color: var(--glass); text-underline-offset: 2px; }
 .topbar[data-mode="examine"] .menu-btn { border-color: var(--stage-line); background: transparent; color: var(--stage-ink-2); }
 .topbar[data-mode="examine"] .menu-btn:hover { color: var(--stage-ink); background: color-mix(in srgb, var(--stage-ink) 8%, transparent); }
 
-.menu-scrim { position: fixed; inset: 0; z-index: 20; }
 .menu {
   position: absolute; right: 0; top: calc(100% + 10px); z-index: 30;
   width: 264px; padding: 6px;
